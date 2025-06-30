@@ -1,7 +1,7 @@
-use std::fs;
-use cosmwasm_std::{Env, MessageInfo, Response};
+use cosmwasm_std::{Env, MessageInfo, Empty};
 use cosmwasm_vm::testing::{mock_backend, mock_env, mock_info};
-use cosmwasm_vm::{Instance, InstanceOptions, Size};
+use cosmwasm_vm::{Instance, InstanceOptions, Size, call_instantiate};
+use std::fs;
 
 pub fn simulate_instantiate(wasm_path: &str) -> anyhow::Result<()> {
     let wasm = fs::read(wasm_path)?;
@@ -15,7 +15,7 @@ pub fn simulate_instantiate(wasm_path: &str) -> anyhow::Result<()> {
         &wasm,
         backend,
         options,
-        Size::new(1_000_000).unwrap(),
+        Some(Size::mebi(1)),
     )?;
 
     let env: Env = mock_env();
@@ -27,9 +27,21 @@ pub fn simulate_instantiate(wasm_path: &str) -> anyhow::Result<()> {
         "initial_balances": [{"address": "creator", "amount": "1000000"}]
     }"#;
 
-    let result = instance.instantiate(&env, &info, instantiate_msg)?;
-    println!("🚀 Instantiate gas used: {}", result.gas_used);
-    println!("✅ Response: {:?}", result);
+    let result = call_instantiate::<_, _, _, Empty>(
+    &mut instance,
+    &env,
+    &info,
+    instantiate_msg,
+)?;
+
+
+    println!("✅ Instantiate result: {:?}", result);
+
+    // 🔍 Gas report
+    let gas_report = instance.create_gas_report();
+    println!("⛽ Gas used (internal): {}", gas_report.used_internally);
+    println!("⛽ Gas used (external): {}", gas_report.used_externally);
+    println!("⛽ Gas remaining: {}", gas_report.remaining);
 
     Ok(())
 }
