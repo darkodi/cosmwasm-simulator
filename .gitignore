@@ -1,1 +1,21 @@
 /target
+# Rust build output
+/target
+**/*.rs.bk
+
+# Artifacts (Wasm binaries, state dumps, etc.)
+/artifacts/
+/*.wasm
+
+# Editor/IDE files
+/.idea/
+/.vscode/
+*.swp
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Optional: compiled debug files
+*.log
+*.trace
