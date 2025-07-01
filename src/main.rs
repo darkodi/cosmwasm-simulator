@@ -1,6 +1,10 @@
 mod simulator;
 
 fn main() -> anyhow::Result<()> {
-    simulator::simulate_instantiate("artifacts/cw20_base.wasm")?;
+    let wasm_path = "artifacts/cw20_base.wasm";
+
+    simulator::simulate_instantiate(wasm_path)?;
+    simulator::simulate_execute(wasm_path)?;
+
     Ok(())
 }
