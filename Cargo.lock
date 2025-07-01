@@ -243,6 +243,8 @@ dependencies = [
  "base64ct",
  "cosmwasm-std",
  "cosmwasm-vm",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

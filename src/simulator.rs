@@ -1,103 +1,97 @@
-use cosmwasm_std::{Env, MessageInfo, Empty};
-use cosmwasm_vm::testing::{mock_backend, mock_env, mock_info};
-use cosmwasm_vm::{Instance, InstanceOptions, Size, call_instantiate};
-use std::fs;
+use cosmwasm_std::Empty;
+use cosmwasm_vm::testing::{mock_backend, mock_env, mock_info, MockApi, MockQuerier, MockStorage};
+use cosmwasm_vm::{call_execute, call_instantiate, call_query, Instance, InstanceOptions, Size};
+use serde_json::Value;
 
-pub fn simulate_instantiate(wasm_path: &str) -> anyhow::Result<()> {
-    let wasm = fs::read(wasm_path)?;
+/// Create and return a pre-initialized Instance
+pub fn instantiate_contract(
+    creator: &str,
+    recipient: &str,
+) -> Instance<MockApi, MockStorage, MockQuerier> {
+    let wasm = std::fs::read("artifacts/cw20_base.wasm").expect("WASM file not found");
     let backend = mock_backend(&[]);
     let options = InstanceOptions {
         gas_limit: 100_000_000_000,
         print_debug: true,
     };
 
-    let mut instance = Instance::from_code(
-        &wasm,
-        backend,
-        options,
-        Some(Size::mebi(16)),
-    )?;
+    let mut instance = Instance::from_code(&wasm, backend, options, Some(Size::mebi(16)))
+        .expect("Instance creation failed");
 
-    let env: Env = mock_env();
-    let info: MessageInfo = mock_info("creator", &[]);
-    let instantiate_msg = br#"{
-        "name": "Token",
-        "symbol": "SIM",
+    let env = mock_env();
+    let info = mock_info(creator, &[]);
+    let instantiate_msg = format!(
+        r#"{{
+        "name": "MyToken",
+        "symbol": "MTK",
         "decimals": 6,
-        "initial_balances": [{"address": "creator", "amount": "1000000"}]
-    }"#;
+        "initial_balances": [
+            {{ "address": "{}", "amount": "1000000" }},
+            {{ "address": "{}", "amount": "0" }}
+        ]
+    }}"#,
+        creator, recipient
+    );
 
-    let result = call_instantiate::<_, _, _, Empty>(
-    &mut instance,
-    &env,
-    &info,
-    instantiate_msg,
-)?;
+    call_instantiate::<_, _, _, Empty>(&mut instance, &env, &info, instantiate_msg.as_bytes())
+        .expect("instantiate failed");
 
-
-    println!("✅ Instantiate result: {:?}", result);
-
-    // 🔍 Gas report
-    let gas_report = instance.create_gas_report();
-    println!("⛽ Gas used (internal): {}", gas_report.used_internally);
-    println!("⛽ Gas used (external): {}", gas_report.used_externally);
-    println!("⛽ Gas remaining: {}", gas_report.remaining);
-
-    Ok(())
+    instance
 }
-use cosmwasm_vm::call_execute;
 
-pub fn simulate_execute(wasm_path: &str) -> anyhow::Result<()> {
-    let wasm = std::fs::read(wasm_path)?;
-    let backend = mock_backend(&[]);
-    let options = InstanceOptions {
-        gas_limit: 100_000_000_000,
-        print_debug: true,
-    };
-
-    let mut instance = Instance::from_code(
-        &wasm,
-        backend,
-        options,
-        Some(Size::mebi(16)),
-    )?;
-
-    // First instantiate the contract to set up state
+/// Simulate a CW20 `transfer` execution
+pub fn simulate_transfer(
+    instance: &mut Instance<MockApi, MockStorage, MockQuerier>,
+    from: &str,
+    to: &str,
+    amount: &str,
+) {
     let env = mock_env();
-    let info = mock_info("creator", &[]);
-    let instantiate_msg = br#"{
-        "name": "Token",
-        "symbol": "SIM",
-        "decimals": 6,
-        "initial_balances": [{"address": "creator", "amount": "1000000"}]
-    }"#;
+    let info = mock_info(from, &[]);
+    let msg = format!(
+        r#"{{
+        "transfer": {{
+            "recipient": "{}",
+            "amount": "{}"
+        }}
+    }}"#,
+        to, amount
+    );
 
-    call_instantiate::<_, _, _, Empty>(&mut instance, &env, &info, instantiate_msg)?;
+    let res = call_execute::<_, _, _, Empty>(instance, &env, &info, msg.as_bytes())
+        .expect("transfer failed");
 
-    // Then simulate an `execute` — in this case, a CW20 transfer
-    let execute_msg = br#"{
-        "transfer": {
-            "recipient": "cosmos1deadbeefdeadbeefdeadbeefdeadbeefdead00e",
-            "amount": "12345"
-        }
-    }"#;
+    println!("✅ Execute result: {:?}", res);
+}
 
+/// Simulate a CW20 balance query and return balance as u128
+pub fn simulate_query_balance(
+    instance: &mut Instance<MockApi, MockStorage, MockQuerier>,
+    address: &str,
+) -> u128 {
     let env = mock_env();
-    let info = mock_info("creator", &[]); // sender is "creator"
+    let msg = format!(
+        r#"{{
+        "balance": {{
+            "address": "{}"
+        }}
+    }}"#,
+        address
+    );
 
-    let result = call_execute::<_, _, _, Empty>(
-        &mut instance,
-        &env,
-        &info,
-        execute_msg,
-    )?;
+    let result = call_query::<_, _, _>(instance, &env, msg.as_bytes()).expect("query failed");
+    let binary = result.unwrap(); // unwrap ContractResult
 
-    println!("✅ Execute result: {:?}", result);
+    let parsed: Value =
+        serde_json::from_slice(binary.as_slice()).expect("failed to parse JSON balance");
+    let balance_str = parsed["balance"]
+        .as_str()
+        .expect("missing balance field");
 
-    let gas_report = instance.create_gas_report();
-    println!("⛽ Gas used (internal): {}", gas_report.used_internally);
-    println!("⛽ Gas used (external): {}", gas_report.used_externally);
-    println!("⛽ Gas remaining: {}", gas_report.remaining);
+    let balance = balance_str
+        .parse::<u128>()
+        .expect("balance is not a number");
 
-    Ok(())
+    println!("🔍 Balance for {:<42}: {}", address, balance);
+    balance
 }
