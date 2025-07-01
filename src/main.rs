@@ -1,26 +1,31 @@
+use std::env;
+use std::fs;
+use simulator::Simulator;
+
 mod simulator;
 
 fn main() {
-    let creator = "creator";
-    let recipient = "cosmos1deadbeefdeadbeefdeadbeefdeadbeefdead00e";
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 5 {
+        eprintln!("Usage:\n  simulator <wasm_path> <sender> <instantiate.json> <exec.json> [<query.json>]");
+        return;
+    }
 
-    let mut instance = simulator::instantiate_contract(creator, recipient);
+    let wasm_path = &args[1];
+    let sender = &args[2];
+    let instantiate_path = &args[3];
+    let exec_path = &args[4];
+    let query_path = args.get(5);
 
-    let before_creator = simulator::simulate_query_balance(&mut instance, creator);
-    let before_recipient = simulator::simulate_query_balance(&mut instance, recipient);
+    let instantiate_msg = fs::read_to_string(instantiate_path).expect("Failed to read instantiate.json");
+    let exec_msg = fs::read_to_string(exec_path).expect("Failed to read exec.json");
 
-    let transfer_amount = "12345";
-    simulator::simulate_transfer(&mut instance, creator, recipient, transfer_amount);
+    let mut sim = Simulator::new(wasm_path);
+    sim.instantiate(sender, &instantiate_msg);
+    sim.execute(sender, &exec_msg);
 
-    let after_creator = simulator::simulate_query_balance(&mut instance, creator);
-    let after_recipient = simulator::simulate_query_balance(&mut instance, recipient);
-
-    println!("💰 creator:     before = {}, after = {}", before_creator, after_creator);
-    println!("💰 recipient:   before = {}, after = {}", before_recipient, after_recipient);
-
-    let transfer_value: u128 = transfer_amount.parse().unwrap();
-    assert_eq!(before_creator - transfer_value, after_creator, "Creator balance mismatch");
-    assert_eq!(before_recipient + transfer_value, after_recipient, "Recipient balance mismatch");
-
-    println!("✅ Balance transfer simulation passed!");
+    if let Some(query_file) = query_path {
+        let query_msg = fs::read_to_string(query_file).expect("Failed to read query.json");
+        sim.query(&query_msg);
+    }
 }

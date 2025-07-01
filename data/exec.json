@@ -1,0 +1,6 @@
+{
+  "transfer": {
+    "recipient": "recipient",
+    "amount": "12345"
+  }
+}
