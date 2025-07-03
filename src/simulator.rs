@@ -26,13 +26,8 @@ impl Simulator {
     pub fn instantiate(&mut self, sender: &str, json_msg: &str) {
         let env = mock_env();
         let info = mock_info(sender, &[]);
-        call_instantiate::<_, _, _, Empty>(
-            &mut self.instance,
-            &env,
-            &info,
-            json_msg.as_bytes(),
-        )
-        .expect("instantiate failed");
+        call_instantiate::<_, _, _, Empty>(&mut self.instance, &env, &info, json_msg.as_bytes())
+            .expect("instantiate failed");
     }
 
     pub fn execute(&mut self, sender: &str, json_msg: &str) {
@@ -47,11 +42,12 @@ impl Simulator {
 
     pub fn query(&mut self, json_msg: &str) -> Value {
         let env = mock_env();
-        let result =
-            call_query::<_, _, _>(&mut self.instance, &env, json_msg.as_bytes()).expect("query failed");
+        let result = call_query::<_, _, _>(&mut self.instance, &env, json_msg.as_bytes())
+            .expect("query failed");
         let binary = result.unwrap();
 
-        let parsed: Value = serde_json::from_slice(binary.as_slice()).expect("failed to parse JSON");
+        let parsed: Value =
+            serde_json::from_slice(binary.as_slice()).expect("failed to parse JSON");
         println!("🔍 Query result: {}", parsed);
         parsed
     }

@@ -1,6 +1,6 @@
+use simulator::Simulator;
 use std::env;
 use std::fs;
-use simulator::Simulator;
 
 mod simulator;
 
@@ -17,7 +17,8 @@ fn main() {
     let exec_path = &args[4];
     let query_path = args.get(5);
 
-    let instantiate_msg = fs::read_to_string(instantiate_path).expect("Failed to read instantiate.json");
+    let instantiate_msg =
+        fs::read_to_string(instantiate_path).expect("Failed to read instantiate.json");
     let exec_msg = fs::read_to_string(exec_path).expect("Failed to read exec.json");
 
     let mut sim = Simulator::new(wasm_path);
