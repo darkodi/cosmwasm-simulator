@@ -7,13 +7,11 @@ export const SimulationViewer = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-       const res = await fetch('/simulations/latest_counter_increment.json', {
-  cache: 'no-store',
-});
-
+        const res = await fetch('/simulations/latest_counter_increment.json', {
+          cache: 'no-store',
+        });
         const json = await res.json();
 
-        // Detect change (if 'count' or timestamp changed)
         const newCount = json.query_after?.count ?? 0;
         if (newCount !== data?.query_after?.count) {
           setData(json);
@@ -24,14 +22,13 @@ export const SimulationViewer = () => {
       }
     };
 
-    fetchData(); // initial fetch
-    const interval = setInterval(fetchData, 5000); // poll every 5s
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, [data]);
 
   return (
     <div>
-      <h2>🔁 Simulation Output</h2>
       {data ? (
         <pre style={{ background: '#f4f4f4', padding: '1em' }}>
           {JSON.stringify(data, null, 2)}
