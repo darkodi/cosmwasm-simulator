@@ -1,11 +1,10 @@
-use cosmwasm_std::{to_json_binary, Empty};
+use cosmwasm_std::{to_json_binary, ContractResult, Empty, Response};
 use cosmwasm_vm::{
-    call_execute, call_query,
+    call_execute_raw, call_query,
     testing::{mock_env, mock_info, MockApi, MockQuerier, MockStorage},
     Instance, InstanceOptions, Size, Storage,
 };
 use std::fs::read;
-
 #[derive(serde::Serialize)]
 pub struct State<'a> {
     pub count: i32,
@@ -59,7 +58,8 @@ pub fn query_count(instance: &mut Instance<MockApi, MockStorage, MockQuerier<Emp
     parsed["count"].as_i64().unwrap() as i32
 }
 
-/// Simulate `{"increment":{}}` and assert count increased
+use crate::output::{ExecuteResult, SimulationResult};
+
 pub fn simulate_increment_and_assert(
     mut instance: Instance<MockApi, MockStorage, MockQuerier<Empty>>,
     before: i32,
@@ -68,12 +68,55 @@ pub fn simulate_increment_and_assert(
     let info = mock_info("someone", &[]);
     let exec_msg = br#"{ "increment": {} }"#;
 
-    let res = call_execute::<_, _, _, Empty>(&mut instance, &env, &info, exec_msg)
-        .expect("Execution failed");
+    // 🔧 Encode inputs
+    let env_bin = cosmwasm_std::to_json_vec(&env).unwrap();
+    let info_bin = cosmwasm_std::to_json_vec(&info).unwrap();
 
-    println!("⚙️  Execute result: {:?}", res);
+    // ⚙️ Run raw execution to capture gas usage
+    let raw =
+        call_execute_raw(&mut instance, &env_bin, &info_bin, exec_msg).expect("Execution failed");
+    let gas_report = instance.create_gas_report();
 
+    // 🧠 Deserialize execution result
+    let exec_result: ContractResult<Response> =
+        cosmwasm_std::from_json(&raw).expect("Deserialization failed");
+
+    println!("⚙️  Execute result: {:?}", exec_result);
+    println!("⛽️  Gas limit: {}", gas_report.limit);
+    println!("⛽️  Gas remaining: {}", gas_report.remaining);
+    println!("⛽️  Gas used externally: {}", gas_report.used_externally);
+    println!("⛽️  Gas used internally: {}", gas_report.used_internally);
+
+    // 🔍 Run query to check new counter value
     let after = query_count(&mut instance);
     println!("🔍 After increment: {}", after);
     assert_eq!(after, before + 1, "Counter did not increment correctly");
+
+    // 🧾 Prepare and write SimulationResult
+    let report = SimulationResult {
+        wasm_path: "artifacts/cw_tpl_osmosis.wasm".to_string(),
+        sender: info.sender.to_string(),
+        action: "increment".to_string(),
+        query_before: serde_json::json!({ "count": before }),
+        query_after: Some(serde_json::json!({ "count": after })),
+        execute_result: match exec_result {
+            ContractResult::Ok(resp) => Some(ExecuteResult {
+                gas_used: gas_report.used_internally + gas_report.used_externally,
+                attributes: resp
+                    .attributes
+                    .into_iter()
+                    .map(|attr| (attr.key, attr.value))
+                    .collect(),
+                messages: resp.messages.len(),
+            }),
+            ContractResult::Err(err_msg) => {
+                println!("❌ Contract execution error: {}", err_msg);
+                None
+            }
+        },
+    };
+
+    if let Err(e) = report.write_to_file("simulations/latest_counter_increment.json") {
+        panic!("Failed to create simulation result file: {e}");
+    }
 }
