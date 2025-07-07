@@ -1,0 +1,21 @@
+{
+  "wasm_path": "artifacts/cw_tpl_osmosis.wasm",
+  "sender": "someone",
+  "action": "increment",
+  "query_before": {
+    "count": 101
+  },
+  "query_after": {
+    "count": 102
+  },
+  "execute_result": {
+    "gas_used": 11896341894,
+    "attributes": [
+      [
+        "method",
+        "try_increment"
+      ]
+    ],
+    "messages": 0
+  }
+}

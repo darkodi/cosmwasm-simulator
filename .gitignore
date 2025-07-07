@@ -19,3 +19,12 @@ Thumbs.db
 # Optional: compiled debug files
 *.log
 *.trace
+
+# Ignore generated simulation outputs
+simulations/*.json
+
+# Ignore frontend dependencies and build artifacts
+/frontend/node_modules/
+/frontend/build/
+/frontend/.env.local
+/frontend/.DS_Store
