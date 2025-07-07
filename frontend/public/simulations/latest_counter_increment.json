@@ -3,10 +3,10 @@
   "sender": "someone",
   "action": "increment",
   "query_before": {
-    "count": 101
+    "count": 102
   },
   "query_after": {
-    "count": 102
+    "count": 103
   },
   "execute_result": {
     "gas_used": 11896341894,

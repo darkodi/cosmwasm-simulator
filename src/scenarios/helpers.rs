@@ -1,10 +1,12 @@
 use cosmwasm_std::{to_json_binary, ContractResult, Empty, Response};
 use cosmwasm_vm::{
-    call_execute_raw, call_query,
+    call_execute, call_query,
     testing::{mock_env, mock_info, MockApi, MockQuerier, MockStorage},
     Instance, InstanceOptions, Size, Storage,
 };
-use std::fs::read;
+use std::fs::{read, File};
+use std::io::Write;
+
 #[derive(serde::Serialize)]
 pub struct State<'a> {
     pub count: i32,
@@ -68,18 +70,10 @@ pub fn simulate_increment_and_assert(
     let info = mock_info("someone", &[]);
     let exec_msg = br#"{ "increment": {} }"#;
 
-    // 🔧 Encode inputs
-    let env_bin = cosmwasm_std::to_json_vec(&env).unwrap();
-    let info_bin = cosmwasm_std::to_json_vec(&info).unwrap();
-
-    // ⚙️ Run raw execution to capture gas usage
-    let raw =
-        call_execute_raw(&mut instance, &env_bin, &info_bin, exec_msg).expect("Execution failed");
+    // ⚙️ Execute the increment message
+    let exec_result = call_execute::<_, _, _, Empty>(&mut instance, &env, &info, exec_msg)
+        .expect("Execution failed");
     let gas_report = instance.create_gas_report();
-
-    // 🧠 Deserialize execution result
-    let exec_result: ContractResult<Response> =
-        cosmwasm_std::from_json(&raw).expect("Deserialization failed");
 
     println!("⚙️  Execute result: {:?}", exec_result);
     println!("⛽️  Gas limit: {}", gas_report.limit);
@@ -116,7 +110,9 @@ pub fn simulate_increment_and_assert(
         },
     };
 
-    if let Err(e) = report.write_to_file("simulations/latest_counter_increment.json") {
-        panic!("Failed to create simulation result file: {e}");
-    }
+    let mut file = File::create("frontend/public/simulations/latest_counter_increment.json")
+        .expect("Failed to create simulation result file");
+    let json = serde_json::to_string_pretty(&report).expect("Serialization failed");
+file.write_all(json.as_bytes()).expect("Write failed");
+
 }

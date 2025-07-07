@@ -1,22 +1,12 @@
-import { useEffect, useState } from 'react';
+import React from 'react';
 import './App.css';
+import { SimulationViewer } from './SimulationViewer';
 
 function App() {
-  const [simulation, setSimulation] = useState<any>(null);
-
-  useEffect(() => {
-    fetch('/simulations/latest_counter_increment.json')
-      .then((res) => res.json())
-      .then(setSimulation)
-      .catch(console.error);
-  }, []);
-
-  if (!simulation) return <div>Loading simulation result...</div>;
-
   return (
-    <div style={{ padding: '2rem', fontFamily: 'monospace' }}>
-      <h1>🔍 Simulation Result</h1>
-      <pre>{JSON.stringify(simulation, null, 2)}</pre>
+    <div className="App">
+      <h1>🧪 CosmWasm Simulation Dashboard</h1>
+      <SimulationViewer />
     </div>
   );
 }
