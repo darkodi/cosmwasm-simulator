@@ -6,10 +6,28 @@ import { SchemaForm } from './SchemaForm';
 const App = () => {
   const [selectedAction, setSelectedAction] = useState<'increment' | 'reset'>('increment');
 
-  const handleExecuteSubmit = (msg: any) => {
-    console.log("📤 Executing message:", msg);
-    // this will later trigger the backend simulation
-  };
+const handleExecuteSubmit = async (msg: any) => {
+  console.log("📤 Executing message:", msg);
+
+fetch('http://localhost:4000/simulate', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify(msg),
+})
+  .then((res) => {
+    if (!res.ok) throw new Error(`❌ Backend error: ${res.status}`);
+    return res.json();
+  })
+  .then((data) => {
+    console.log('✅ Simulation result from backend:', data);
+  })
+  .catch((err) => {
+    console.error('❌ Failed to reach backend:', err);
+  });
+
+};
 
   const schemaPath = selectedAction === 'increment' ? 'increment_msg.json' : 'reset_msg.json';
 

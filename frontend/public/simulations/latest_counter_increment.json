@@ -1,19 +1,19 @@
 {
   "wasm_path": "artifacts/cw_tpl_osmosis.wasm",
-  "sender": "someone",
-  "action": "increment",
+  "sender": "osmo1deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+  "action": "reset",
   "query_before": {
     "count": 102
   },
   "query_after": {
-    "count": 103
+    "count": 104
   },
   "execute_result": {
-    "gas_used": 11896341894,
+    "gas_used": 12678455974,
     "attributes": [
       [
         "method",
-        "try_increment"
+        "reset"
       ]
     ],
     "messages": 0
