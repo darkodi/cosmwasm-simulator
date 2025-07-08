@@ -116,3 +116,67 @@ pub fn simulate_increment_and_assert(
 file.write_all(json.as_bytes()).expect("Write failed");
 
 }
+
+pub fn simulate_reset_and_assert(
+    mut instance: Instance<MockApi, MockStorage, MockQuerier<Empty>>,
+    before: i32,
+    new_count: i32,
+) {
+    let env = mock_env();
+   let info = mock_info("osmo1deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", &[]);
+
+
+    let exec_msg = format!(r#"{{ "reset": {{ "count": {} }} }}"#, new_count);
+
+    // ⚙️ Execute the reset message
+    let exec_result = call_execute::<_, _, _, Empty>(
+        &mut instance,
+        &env,
+        &info,
+        exec_msg.as_bytes(),
+    )
+    .expect("Execution failed");
+
+    let gas_report = instance.create_gas_report();
+
+    println!("⚙️  Execute result: {:?}", exec_result);
+    println!("⛽️  Gas limit: {}", gas_report.limit);
+    println!("⛽️  Gas remaining: {}", gas_report.remaining);
+    println!("⛽️  Gas used externally: {}", gas_report.used_externally);
+    println!("⛽️  Gas used internally: {}", gas_report.used_internally);
+
+    // 🔍 Query new state
+    let after = query_count(&mut instance);
+    println!("🔍 After reset: {}", after);
+    assert_eq!(after, new_count, "Counter did not reset correctly");
+
+    // 🧾 Prepare output
+    let report = SimulationResult {
+        wasm_path: "artifacts/cw_tpl_osmosis.wasm".to_string(),
+        sender: info.sender.to_string(),
+        action: "reset".to_string(),
+        query_before: serde_json::json!({ "count": before }),
+        query_after: Some(serde_json::json!({ "count": after })),
+        execute_result: match exec_result {
+            ContractResult::Ok(resp) => Some(ExecuteResult {
+                gas_used: gas_report.used_externally + gas_report.used_internally,
+                attributes: resp
+                    .attributes
+                    .into_iter()
+                    .map(|attr| (attr.key, attr.value))
+                    .collect(),
+                messages: resp.messages.len(),
+            }),
+            ContractResult::Err(err_msg) => {
+                println!("❌ Contract execution error: {}", err_msg);
+                None
+            }
+        },
+    };
+
+    let mut file = File::create("frontend/public/simulations/latest_counter_increment.json")
+        .expect("Failed to create simulation result file");
+    let json = serde_json::to_string_pretty(&report).expect("Serialization failed");
+    file.write_all(json.as_bytes()).expect("Write failed");
+}
+
