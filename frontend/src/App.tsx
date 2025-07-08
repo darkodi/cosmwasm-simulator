@@ -1,3 +1,4 @@
+// src/App.tsx
 import React, { useState } from 'react';
 import './App.css';
 import { SimulationViewer } from './SimulationViewer';
@@ -6,30 +7,29 @@ import { SchemaForm } from './SchemaForm';
 const App = () => {
   const [selectedAction, setSelectedAction] = useState<'increment' | 'reset'>('increment');
 
-const handleExecuteSubmit = async (msg: any) => {
-  console.log("📤 Executing message:", msg);
+  const handleExecuteSubmit = async (msg: any) => {
+    console.log("📤 Executing message:", msg);
 
-fetch('http://localhost:4000/simulate', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify(msg),
-})
-  .then((res) => {
-    if (!res.ok) throw new Error(`❌ Backend error: ${res.status}`);
-    return res.json();
-  })
-  .then((data) => {
-    console.log('✅ Simulation result from backend:', data);
-  })
-  .catch((err) => {
-    console.error('❌ Failed to reach backend:', err);
-  });
+    fetch('http://localhost:4000/simulate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(msg),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`❌ Backend error: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        console.log('✅ Simulation result from backend:', data);
+      })
+      .catch((err) => {
+        console.error('❌ Failed to reach backend:', err);
+      });
+  };
 
-};
-
-  const schemaPath = selectedAction === 'increment' ? 'increment_msg.json' : 'reset_msg.json';
+  const schemaPath = `cw_tpl_osmosis/${selectedAction}_msg.json`;
 
   return (
     <div className="App">
