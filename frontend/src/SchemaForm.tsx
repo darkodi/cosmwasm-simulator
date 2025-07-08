@@ -1,10 +1,9 @@
-// SchemaForm.tsx
 import React, { useEffect, useState } from 'react';
 import Form from '@rjsf/core';
 import validator from '@rjsf/validator-ajv8';
 
 type Props = {
-  schemaPath: string; // 👈 this was missing before!
+  schemaPath: string;
   onSubmit: (data: any) => void;
 };
 

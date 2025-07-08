@@ -6,10 +6,10 @@
     "count": 102
   },
   "query_after": {
-    "count": 104
+    "count": 80
   },
   "execute_result": {
-    "gas_used": 12678455974,
+    "gas_used": 12643725858,
     "attributes": [
       [
         "method",
