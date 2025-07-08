@@ -28,3 +28,6 @@ simulations/*.json
 /frontend/build/
 /frontend/.env.local
 /frontend/.DS_Store
+
+# backend dependencies
+backend/node_modules/
