@@ -5,6 +5,7 @@ import bodyParser from 'body-parser';
 import path from 'path';
 import fs from 'fs';
 import { runSimulation } from './simulate';
+import { runQuery } from './simulate';
 
 const app = express();
 const PORT = 4000;
@@ -65,6 +66,19 @@ app.get('/contracts', (req, res) => {
   } catch (err) {
     console.error('❌ Failed to read schema directories', err);
     res.status(500).json({ error: 'Failed to load contracts' });
+  }
+});
+
+app.post('/query', async (req, res): Promise<void> => {
+  const { contract, action } = req.body;
+  console.log(`📨 Running query for [${contract}/${action}]`);
+
+  try {
+    const result = await runQuery(contract, action);
+    res.json(result);
+  } catch (err) {
+    console.error('❌ Query failed:', err);
+    res.status(500).json({ error: 'Query failed' });
   }
 });
 

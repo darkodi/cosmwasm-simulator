@@ -38,3 +38,35 @@ export async function runSimulation(msg: any, contractName: string, actionName: 
   const output = await readFile(outputPath, 'utf-8');
   return JSON.parse(output);
 }
+
+export async function runQuery(contractName: string, actionName: string) {
+  const basePath = path.resolve(__dirname, '..');
+  const outputPath = path.join(basePath, `frontend/public/simulations/${contractName}/${actionName}/result.json`);
+
+  await new Promise((resolve, reject) => {
+    exec(
+      'cargo test test_forked_counter_query -- --nocapture',
+      {
+        cwd: basePath,
+        env: {
+          ...process.env,
+          SIMULATION_QUERY_OUTPUT_PATH: outputPath,
+        },
+      },
+      (err, stdout, stderr) => {
+        if (err) {
+          console.error(stderr);
+          reject(err);
+        } else {
+          console.log(stdout);
+          resolve(null);
+        }
+      }
+    );
+  });
+
+  const output = await readFile(outputPath, 'utf-8');
+  return JSON.parse(output);
+}
+
+

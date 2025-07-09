@@ -43,29 +43,32 @@ const App = () => {
     console.log('🔁 Action changed to:', newAction);
   };
 
-  const handleExecuteSubmit = async (msg: any) => {
-    const payload = {
-      contract: selectedContract,
-      action: selectedAction,
-      msg,
-    };
-
-    console.log('📤 Sending simulation payload:', payload);
-
-    try {
-      const res = await fetch('http://localhost:4000/simulate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      console.log('✅ Received simulation result:', data);
-      setLastSimulationTime(Date.now());
-    } catch (err) {
-      console.error('❌ Error reaching backend:', err);
-    }
+ const handleExecuteSubmit = async (msg: any) => {
+  const payload = {
+    contract: selectedContract,
+    action: selectedAction,
+    msg,
   };
+
+  console.log('📤 Sending simulation payload:', payload);
+
+  try {
+    const isQuery = selectedAction.toLowerCase().includes('query');
+
+    const res = await fetch(`http://localhost:4000/${isQuery ? 'query' : 'simulate'}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    console.log('✅ Received simulation result:', data);
+    setLastSimulationTime(Date.now());
+  } catch (err) {
+    console.error('❌ Error reaching backend:', err);
+  }
+};
+
 
   const schemaPath =
     selectedContract && selectedAction
@@ -81,53 +84,54 @@ const App = () => {
   if (loading) return <p>Loading available contracts...</p>;
 
   return (
-    <div className="App">
-      <h1>🧪 CosmWasm Simulation Dashboard</h1>
+  <div className="App">
+    <h1>🧪 CosmWasm Simulation Dashboard</h1>
 
-      <label>
-        Select contract:&nbsp;
-        <select value={selectedContract} onChange={handleContractChange}>
-          {contractNames.map((contract) => (
-            <option key={contract} value={contract}>
-              {contract}
-            </option>
-          ))}
-        </select>
-      </label>
+    <label>
+      Select contract:&nbsp;
+      <select value={selectedContract} onChange={handleContractChange}>
+        {contractNames.map((contract) => (
+          <option key={contract} value={contract}>
+            {contract}
+          </option>
+        ))}
+      </select>
+    </label>
 
-      <br />
+    <br />
 
-      <label>
-        Select action:&nbsp;
-        <select
-          value={selectedAction}
-          onChange={handleActionChange}
-          disabled={!selectedContract}
-        >
-          {(contracts[selectedContract] || []).map((action) => (
-            <option key={action} value={action}>
-              {action}
-            </option>
-          ))}
-        </select>
-      </label>
+    <label>
+      Select action:&nbsp;
+      <select
+        value={selectedAction}
+        onChange={handleActionChange}
+        disabled={!selectedContract}
+      >
+        {(contracts[selectedContract] || []).map((action) => (
+          <option key={action} value={action}>
+            {action}
+          </option>
+        ))}
+      </select>
+    </label>
 
-      <h2>📤 Execute Message</h2>
-      {schemaPath && (
-        <SchemaForm
-          schemaPath={schemaPath}
-          onSubmit={(msg) => handleExecuteSubmit(msg)}
-        />
-      )}
-
-      <h2>🔁 Simulation Output</h2>
-      <SimulationViewer
-        contract={selectedContract}
-        action={selectedAction}
-        lastSimulationTime={lastSimulationTime}
+    <h2>📤 Send Message</h2>
+    {schemaPath && (
+      <SchemaForm
+        schemaPath={schemaPath}
+        onSubmit={(msg) => handleExecuteSubmit(msg)}
       />
-    </div>
-  );
+    )}
+
+    <h2>🔁 Simulation Output</h2>
+    <SimulationViewer
+      contract={selectedContract}
+      action={selectedAction}
+      lastSimulationTime={lastSimulationTime}
+    />
+  </div>
+);
+
 };
 
 export default App;
