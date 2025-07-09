@@ -9,19 +9,29 @@ import { runSimulation } from './simulate';
 const app = express();
 const PORT = 4000;
 
-app.use(cors({
-  origin: 'http://localhost:3000',
-}));
-
+app.use(
+  cors({
+    origin: 'http://localhost:3000',
+  })
+);
 app.use(bodyParser.json());
 
-// simulation endpoint
-app.post('/simulate', async (req, res) => {
-  const msg = req.body;
-  console.log('📨 Received simulation request:', msg);
+/* ──────────────────────────────────────────────────────────────
+   Serve result.json files that the Rust test writes
+   URL example: http://localhost:4000/simulations/cw_tpl_osmosis/reset/result.json
+──────────────────────────────────────────────────────────────── */
+app.use(
+  '/simulations',
+  express.static(path.join(__dirname, '../frontend/public/simulations'))
+);
+
+// ───────────── simulation endpoint ─────────────
+app.post('/simulate', async (req, res): Promise<void> => {
+  const { contract, action, msg } = req.body;
+  console.log(`📨 Simulating [${contract}/${action}] with msg:`, msg);
 
   try {
-    const result = await runSimulation(msg);
+    const result = await runSimulation(msg, contract, action);
     res.json(result);
   } catch (err) {
     console.error('❌ Simulation failed:', err);
@@ -29,25 +39,26 @@ app.post('/simulate', async (req, res) => {
   }
 });
 
-// endpoint to list available contracts and actions
+// ───────────── contracts list endpoint ─────────────
 app.get('/contracts', (req, res) => {
-  const schemaRoot = path.join(process.cwd(), 'frontend/public/schema');
+  const schemaRoot = path.resolve(__dirname, '../frontend/public/schema');
   console.log('📂 Reading schema from:', schemaRoot);
 
   const result: Record<string, string[]> = {};
 
   try {
-    const contractDirs = fs.readdirSync(schemaRoot, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory())
-      .map(dirent => dirent.name);
+    const contractDirs = fs
+      .readdirSync(schemaRoot, { withFileTypes: true })
+      .filter((dirent) => dirent.isDirectory())
+      .map((dirent) => dirent.name);
 
     for (const contract of contractDirs) {
       const contractPath = path.join(schemaRoot, contract);
-      const files = fs.readdirSync(contractPath)
-        .filter(name => name.endsWith('_msg.json'));
+      const files = fs
+        .readdirSync(contractPath)
+        .filter((name) => name.endsWith('_msg.json'));
 
-      const actions = files.map(file => file.replace('_msg.json', ''));
-      result[contract] = actions;
+      result[contract] = files.map((f) => f.replace('_msg.json', ''));
     }
 
     res.json(result);
@@ -57,7 +68,7 @@ app.get('/contracts', (req, res) => {
   }
 });
 
-// 🚀 Start server
+// ───────────── start server ─────────────
 app.listen(PORT, () => {
   console.log(`🚀 Backend running on http://localhost:${PORT}`);
 });
