@@ -1,0 +1,6 @@
+{
+  "msg": {
+    "increment": {}
+  },
+  "output_path": "/home/darko/Projects/Cosmwasm Simulator/cosmwasm-simulator/frontend/public/simulations/cw_tpl_osmosis/increment/result.json"
+}
