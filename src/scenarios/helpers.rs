@@ -95,12 +95,13 @@ use crate::output::{ExecuteResult, SimulationResult};
 pub fn simulate_increment_and_assert(
     mut instance: Instance<MockApi, MockStorage, MockQuerier<Empty>>,
     before: i32,
+    exec_msg: &serde_json::Value,
 ) -> SimulationResult {
     let env = mock_env();
     let info = mock_info("someone", &[]);
-    let exec_msg = br#"{ "increment": {} }"#;
+    let msg_bin = to_json_binary(exec_msg).expect("Failed to convert exec_msg");
 
-    let exec_result = call_execute::<_, _, _, Empty>(&mut instance, &env, &info, exec_msg)
+    let exec_result = call_execute::<_, _, _, Empty>(&mut instance, &env, &info,  &msg_bin.0)
         .expect("Execution failed");
     let gas_report = instance.create_gas_report();
 
@@ -138,16 +139,17 @@ pub fn simulate_reset_and_assert(
     mut instance: Instance<MockApi, MockStorage, MockQuerier<Empty>>,
     before: i32,
     new_count: i32,
+    exec_msg: &serde_json::Value,
 ) -> SimulationResult {
     let env = mock_env();
     let info = mock_info("osmo1deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", &[]);
-    let exec_msg = format!(r#"{{ "reset": {{ "count": {} }} }}"#, new_count);
+    let msg_bin = to_json_binary(exec_msg).expect("Failed to convert exec_msg");
 
     let exec_result = call_execute::<_, _, _, Empty>(
         &mut instance,
         &env,
         &info,
-        exec_msg.as_bytes(),
+        &msg_bin.0,
     )
     .expect("Execution failed");
 

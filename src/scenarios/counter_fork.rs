@@ -89,13 +89,13 @@ fn test_forked_counter_exec() {
     );
 
     let report: SimulationResult = if msg.get("increment").is_some() {
-        simulate_increment_and_assert(instance, before)
+        simulate_increment_and_assert(instance, before, &msg)
     } else if let Some(reset) = msg.get("reset") {
         let new_count = reset
             .get("count")
             .and_then(|v| v.as_i64())
             .expect("Missing count in reset");
-        simulate_reset_and_assert(instance, before, new_count as i32)
+        simulate_reset_and_assert(instance, before, new_count as i32, &msg)
     } else {
         panic!("Unsupported exec message: {:?}", msg);
     };
