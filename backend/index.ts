@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { runSimulation } from './simulate';
 import { runQuery } from './simulate';
+import { exec } from 'child_process';
 
 const app = express();
 const PORT = 4000;
@@ -81,6 +82,43 @@ app.post('/query', async (req, res): Promise<void> => {
     res.status(500).json({ error: 'Query failed' });
   }
 });
+
+// ───────────── fork endpoint ─────────────
+app.post('/fork', async (req, res) => {
+  console.log('🔁 Forking live state from chain...');
+  try {
+    const basePath = path.resolve(__dirname, '..');
+    const outputPath = path.join(basePath, 'frontend/public/simulations/cw_tpl_osmosis/query/result.json');
+
+    await new Promise((resolve, reject) => {
+      exec(
+        'cargo test test_fork_live_state -- --nocapture',
+        {
+          cwd: basePath,
+          env: {
+            ...process.env,
+            SIMULATION_QUERY_OUTPUT_PATH: outputPath,
+          },
+        },
+        (err: Error | null, stdout: string, stderr: string) => {
+          if (err) {
+            console.error('❌ Forking error:', stderr);
+            reject(err);
+          } else {
+            console.log('✅ Forking done:\n', stdout);
+            resolve(null);
+          }
+        }
+      );
+    });
+
+    res.status(200).json({ status: 'ok', msg: 'Forked state from chain' });
+  } catch (err) {
+    res.status(500).json({ status: 'error', msg: 'Forking failed', error: String(err) });
+  }
+});
+
+
 
 // ───────────── start server ─────────────
 app.listen(PORT, () => {

@@ -1,7 +1,7 @@
 {
   "msg": {
     "reset": {
-      "count": 97
+      "count": 100
     }
   },
   "output_path": "/home/darko/Projects/Cosmwasm Simulator/cosmwasm-simulator/frontend/public/simulations/cw_tpl_osmosis/reset/result.json"

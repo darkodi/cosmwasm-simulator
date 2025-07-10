@@ -12,22 +12,24 @@ const App = () => {
   const [selectedAction, setSelectedAction] = useState<string>('');
   const [lastSimulationTime, setLastSimulationTime] = useState<number>(0);
 
- useEffect(() => {
-  // Only run once after contracts are fetched and state is empty
-  if (
-    selectedContract === '' &&
-    selectedAction === '' &&
-    Object.keys(contracts).length > 0
-  ) {
-    const firstContract = Object.keys(contracts)[0];
-    const firstAction = contracts[firstContract]?.[0] || '';
+  // Fork state
+  const [forking, setForking] = useState(false);
+  const [forkStatus, setForkStatus] = useState('');
 
-    console.log('🚀 Initializing contract/action:', firstContract, firstAction);
-    setSelectedContract(firstContract);
-    setSelectedAction(firstAction);
-  }
-}, [contracts]); // 👈 no contractNames here
+  useEffect(() => {
+    if (
+      selectedContract === '' &&
+      selectedAction === '' &&
+      Object.keys(contracts).length > 0
+    ) {
+      const firstContract = Object.keys(contracts)[0];
+      const firstAction = contracts[firstContract]?.[0] || '';
 
+      console.log('🚀 Initializing contract/action:', firstContract, firstAction);
+      setSelectedContract(firstContract);
+      setSelectedAction(firstAction);
+    }
+  }, [contracts]);
 
   const handleContractChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newContract = e.target.value;
@@ -43,32 +45,48 @@ const App = () => {
     console.log('🔁 Action changed to:', newAction);
   };
 
- const handleExecuteSubmit = async (msg: any) => {
-  const payload = {
-    contract: selectedContract,
-    action: selectedAction,
-    msg,
+  const handleExecuteSubmit = async (msg: any) => {
+    const payload = {
+      contract: selectedContract,
+      action: selectedAction,
+      msg,
+    };
+
+    console.log('📤 Sending simulation payload:', payload);
+
+    try {
+      const isQuery = selectedAction.toLowerCase().includes('query');
+
+      const res = await fetch(`http://localhost:4000/${isQuery ? 'query' : 'simulate'}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      console.log('✅ Received simulation result:', data);
+      setLastSimulationTime(Date.now());
+    } catch (err) {
+      console.error('❌ Error reaching backend:', err);
+    }
   };
 
-  console.log('📤 Sending simulation payload:', payload);
-
-  try {
-    const isQuery = selectedAction.toLowerCase().includes('query');
-
-    const res = await fetch(`http://localhost:4000/${isQuery ? 'query' : 'simulate'}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-    console.log('✅ Received simulation result:', data);
-    setLastSimulationTime(Date.now());
-  } catch (err) {
-    console.error('❌ Error reaching backend:', err);
-  }
-};
-
+  const handleFork = async () => {
+    setForking(true);
+    setForkStatus('');
+    try {
+      const res = await fetch('http://localhost:4000/fork', {
+        method: 'POST',
+      });
+      const json = await res.json();
+      setForkStatus(json.msg || 'Forked successfully!');
+    } catch (err) {
+      console.error('❌ Fork failed:', err);
+      setForkStatus('Fork failed.');
+    } finally {
+      setForking(false);
+    }
+  };
 
   const schemaPath =
     selectedContract && selectedAction
@@ -84,54 +102,59 @@ const App = () => {
   if (loading) return <p>Loading available contracts...</p>;
 
   return (
-  <div className="App">
-    <h1>🧪 CosmWasm Simulation Dashboard</h1>
+    <div className="App">
+      <h1>🧪 CosmWasm Simulation Dashboard</h1>
 
-    <label>
-      Select contract:&nbsp;
-      <select value={selectedContract} onChange={handleContractChange}>
-        {contractNames.map((contract) => (
-          <option key={contract} value={contract}>
-            {contract}
-          </option>
-        ))}
-      </select>
-    </label>
+      <label>
+        Select contract:&nbsp;
+        <select value={selectedContract} onChange={handleContractChange}>
+          {contractNames.map((contract) => (
+            <option key={contract} value={contract}>
+              {contract}
+            </option>
+          ))}
+        </select>
+      </label>
 
-    <br />
+      <br />
 
-    <label>
-      Select action:&nbsp;
-      <select
-        value={selectedAction}
-        onChange={handleActionChange}
-        disabled={!selectedContract}
-      >
-        {(contracts[selectedContract] || []).map((action) => (
-          <option key={action} value={action}>
-            {action}
-          </option>
-        ))}
-      </select>
-    </label>
+      <label>
+        Select action:&nbsp;
+        <select
+          value={selectedAction}
+          onChange={handleActionChange}
+          disabled={!selectedContract}
+        >
+          {(contracts[selectedContract] || []).map((action) => (
+            <option key={action} value={action}>
+              {action}
+            </option>
+          ))}
+        </select>
+      </label>
 
-    <h2>📤 Send Message</h2>
-    {schemaPath && (
-      <SchemaForm
-        schemaPath={schemaPath}
-        onSubmit={(msg) => handleExecuteSubmit(msg)}
+      <br />
+      <button onClick={handleFork} disabled={forking}>
+        {forking ? 'Forking...' : 'Fork Live State'}
+      </button>
+      {forkStatus && <p>{forkStatus}</p>}
+
+      <h2>📤 Send Message</h2>
+      {schemaPath && (
+        <SchemaForm
+          schemaPath={schemaPath}
+          onSubmit={(msg) => handleExecuteSubmit(msg)}
+        />
+      )}
+
+      <h2>🔁 Simulation Output</h2>
+      <SimulationViewer
+        contract={selectedContract}
+        action={selectedAction}
+        lastSimulationTime={lastSimulationTime}
       />
-    )}
-
-    <h2>🔁 Simulation Output</h2>
-    <SimulationViewer
-      contract={selectedContract}
-      action={selectedAction}
-      lastSimulationTime={lastSimulationTime}
-    />
-  </div>
-);
-
+    </div>
+  );
 };
 
 export default App;
