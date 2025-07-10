@@ -260,6 +260,7 @@ dependencies = [
  "base64ct",
  "cosmwasm-std",
  "cosmwasm-vm",
+ "once_cell",
  "reqwest",
  "serde",
  "serde_json",

@@ -3,6 +3,7 @@
   "title": "ExecuteMsg",
   "oneOf": [
     {
+      "title": "transfer",
       "description": "Transfer is a base message to move tokens to another account without triggering actions",
       "type": "object",
       "required": [
@@ -29,6 +30,7 @@
       "additionalProperties": false
     },
     {
+      "title": "burn",
       "description": "Burn is a base message to destroy tokens forever",
       "type": "object",
       "required": [
